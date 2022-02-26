@@ -1,0 +1,13 @@
+.git/
+.pants.d/
+.pids/
+.venv/
+
+**.vscode/
+**.pytest_cache/
+
+.idea/
+
+**/*.pyc
+**/.DS_Store
+**/__pycache__/

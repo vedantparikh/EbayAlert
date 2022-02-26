@@ -1,6 +1,6 @@
 from rest_framework import routers
 
-from shore.alert import views
+from alert import views
 
 
 class OptionalTrailingSlashRouter(routers.DefaultRouter):
@@ -15,5 +15,6 @@ router = OptionalTrailingSlashRouter()
 
 router.register(r'products', views.ProductViewSet, basename='product')
 router.register(r'subscriptions', views.SubscriptionViewSet, basename='subscription')
+router.register(r'users', views.UserViewSet, basename='user')
 
 urlpatterns = router.urls

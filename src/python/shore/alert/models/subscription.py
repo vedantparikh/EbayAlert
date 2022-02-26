@@ -1,5 +1,6 @@
 from uuid import uuid4
 
+from django.conf import settings
 from django.db import models
 from django.db.models import QuerySet
 
@@ -10,13 +11,8 @@ from alert.models.managers import (
     SoftDeleteModelMixin,
 )
 from alert.models.querysets import SoftDeleteQuerySet
-from alert.models.user import User
 
-FREQUENCY_CHOICES = (
-    (2, "Two"),
-    (15, "Fifteen"),
-    (30, "Thirty"),
-)
+User = settings.AUTH_USER_MODEL
 
 
 class SubscriptionQuerySet(SoftDeleteQuerySet):
@@ -27,10 +23,16 @@ class SubscriptionQuerySet(SoftDeleteQuerySet):
 
         return self.filter(search_phrase=search_phrase)
 
-    def subscription_exists(self, search_phrase, frequency, user) -> bool:
+    def subscription_exists(self, search_phrase, user) -> bool:
         """ Returns bool if subscription instance already exists. """
 
-        return self.filter(search_phrase=search_phrase, frequency=frequency, user=user).exists()
+        return self.filter(search_phrase=search_phrase, user=user).exists()
+
+
+class Frequency(models.IntegerChoices):
+    TWO = 2, 'Two'
+    FIFTEEN = 15, 'Fifteen'
+    THIRTY = 30, 'Thirty'
 
 
 class Subscription(SoftDeleteModelMixin):
@@ -38,10 +40,9 @@ class Subscription(SoftDeleteModelMixin):
 
     id = models.UUIDField(default=uuid4, editable=False, primary_key=True)
     search_phrase = models.CharField(max_length=255, help_text='Name of the product.')
-    frequency = models.IntegerField(choices=FREQUENCY_CHOICES, help_text='Price of the product.')
+    frequency = models.IntegerField(choices=Frequency.choices, help_text='Price of the product.')
     is_reverse = models.BooleanField(default=True, help_text='Whether to show results in reverse order.')
-    last_frequency_change_at = models.DateTimeField(null=True, blank=True,
-                                                    help_text='Last changed timestamp of frequency.')
+
     user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, related_name='subscription_user')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

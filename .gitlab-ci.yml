@@ -1,0 +1,26 @@
+image: python:latest
+
+variables:
+    SECRET_KEY: "django-insecure-ir+sxe+(a%==0*$nj6_$y*m#9u*6(s)37c7ix7$0bnwe6cr=j$"
+    DEBUG: "True"
+    ALLOWED_HOSTS: "['*']"
+    DB_ENGINE: "django.db.backends.sqlite3"
+    DB_NAME: "db.sqlite3"
+    STATIC_URL: "/static/"
+
+cache:
+  paths:
+    - ~/.cache/pip/
+
+before_script:
+  - python -V
+  - python -m venv .venv
+  - source .venv/bin/activate
+  - pip install -r src/python/shore/requirements.txt
+
+test:
+  script:
+    - cd src/python/shore/
+    - python3 manage.py makemigrations
+    - python3 manage.py migrate
+    - python3 manage.py test --verbosity 3

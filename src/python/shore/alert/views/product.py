@@ -1,5 +1,4 @@
 from typing import Tuple
-from uuid import UUID
 
 from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import QuerySet
@@ -11,9 +10,9 @@ from alert.models import Product
 from alert.serializers import (
     ProductSerializer,
     ProductQuerySerializer,
+    ProductUpdateSerializer,
 )
 from alert.serializers.base import ErrorResponseSerializer
-
 from alert.views.base import BaseViewSet
 
 
@@ -22,17 +21,17 @@ class ProductViewSet(BaseViewSet):
     model = Product
 
     def _parse_serializer_query(self, query) -> Tuple:
-        return query.get('user_id'), query.get('name')
+        return query.get('subscription_id'), query.get('name')
 
     def _filter_products(self, query) -> QuerySet:
-        user_id, name = self._parse_serializer_query(query)
+        subscription_id, name = self._parse_serializer_query(query)
 
         products = self.model.objects.all()
-        if user_id:
-            products = products.objects.filter(user=user_id)
+        if subscription_id:
+            products = products.filter(subscription=subscription_id)
 
         if name:
-            products = products.objects.filter(name=name)
+            products = products.filter_by_name(name)
 
         return products
 
@@ -69,7 +68,7 @@ class ProductViewSet(BaseViewSet):
                     'details': f'{str(err)}'
                 }
             })
-            return Response(data=serializer.data, status=status.HTTP_400_BAD_REQUEST)
+            return Response(data=serializer.data, status=status.HTTP_404_NOT_FOUND)
 
         return Response(serializer.data)
 
@@ -88,18 +87,22 @@ class ProductViewSet(BaseViewSet):
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     @swagger_auto_schema(
-        request_body=ProductSerializer(),
+        request_body=ProductUpdateSerializer(),
         responses={
             status.HTTP_200_OK: ProductSerializer(),
             status.HTTP_400_BAD_REQUEST: 'Product is not updated.',
         })
     def update(self, request, *args, **kwargs):
+        update_serializer = ProductUpdateSerializer(data=request.data)
+        update_serializer.is_valid(raise_exception=True)
 
-        instance = Product.objects.get(id=self.kwargs['uuid'])
-        serializer = self.serializer_class(instance=instance, data=request.data)
-        serializer.is_valid(raise_exception=True)
+        data = update_serializer.data
+        product_id = data.get('product_id')
+        name = data.get('name')
+        price = data.get('price')
+
         try:
-            serializer.save()
+            instance = Product.objects.get(id=self.kwargs['uuid'])
         except ObjectDoesNotExist as err:
             serializer = ErrorResponseSerializer({
                 'error': {
@@ -109,6 +112,16 @@ class ProductViewSet(BaseViewSet):
                 }
             })
             return Response(data=serializer.data, status=status.HTTP_400_BAD_REQUEST)
+
+        if product_id:
+            instance.product_id = product_id
+        if name:
+            instance.name = name
+        if price:
+            instance.price = price
+
+        instance.save()
+        serializer = self.serializer_class(instance)
 
         return Response(serializer.data, status=status.HTTP_200_OK)
 
