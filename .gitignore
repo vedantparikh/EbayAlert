@@ -1,0 +1,10 @@
+# IDEs and editors
+
+/.idea/
+.idea/
+
+.venv
+.venv*
+
+*.pyc
+__init__.pyc
